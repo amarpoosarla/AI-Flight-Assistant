@@ -1,0 +1,112 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [staging]
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false   # Don't cancel in-progress staging deploys
+
+jobs:
+  validate:
+    name: Full Pipeline Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Tests with coverage
+        run: npm run test:coverage
+
+      - name: Build check
+        run: npm run build
+        env:
+          NEXT_PUBLIC_ENV: staging
+          NEXT_PUBLIC_API_URL: ${{ secrets.STAGING_API_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+
+  deploy:
+    name: Deploy to Vercel Staging
+    runs-on: ubuntu-latest
+    needs: validate
+    environment: staging
+    outputs:
+      deploy_url: ${{ steps.deploy.outputs.deploy_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Pull Vercel environment (staging)
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build for Vercel
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Vercel Staging
+        id: deploy
+        run: |
+          DEPLOY_URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "deploy_url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+
+  smoke-tests:
+    name: Smoke Tests Against Staging
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Health check
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "x-health-secret: ${{ secrets.HEALTH_CHECK_SECRET }}" \
+            "${{ needs.deploy.outputs.deploy_url }}/admin/health")
+          if [ "$STATUS" != "200" ]; then
+            echo "Health check failed with status $STATUS"
+            exit 1
+          fi
+          echo "Health check passed"
+
+      - name: Flights API smoke test
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -d '{"origin":"JFK","destination":"LAX","departureDate":"2025-06-01","adults":1}' \
+            "${{ needs.deploy.outputs.deploy_url }}/api/flights/search")
+          if [ "$STATUS" != "200" ]; then
+            echo "Flights API smoke test failed with status $STATUS"
+            exit 1
+          fi
+          echo "Flights API smoke test passed"
+
+  # Manual approval gate — a human must approve before production promotion
+  await-approval:
+    name: Await Manual Approval for Production
+    runs-on: ubuntu-latest
+    needs: smoke-tests
+    environment: staging-to-production-gate   # Configure this env in GitHub with required reviewers
+    steps:
+      - name: Approval granted
+        run: echo "Manual approval received. Ready for production promotion."

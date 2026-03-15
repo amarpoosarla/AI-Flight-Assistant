@@ -1,0 +1,142 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches: [dev, staging, main]
+
+# Cancel in-progress runs on new commits to the same PR
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint & Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Check Prettier formatting
+        run: npm run format:check
+
+  typecheck:
+    name: TypeScript Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript strict check
+        run: npm run type-check
+
+  test:
+    name: Unit Tests & Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+
+  build:
+    name: Next.js Build Check
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, test]
+    env:
+      NEXT_PUBLIC_ENV: development
+      NEXT_PUBLIC_API_URL: https://flight-app-dev.vercel.app
+      # Use placeholder values for build check — no real secrets needed
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Next.js application
+        run: npm run build
+
+  # Post a summary comment on the PR with all results
+  report:
+    name: Post PR Summary
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, test, build]
+    if: always()
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Post validation summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const results = {
+              lint: '${{ needs.lint.result }}',
+              typecheck: '${{ needs.typecheck.result }}',
+              test: '${{ needs.test.result }}',
+              build: '${{ needs.build.result }}',
+            };
+
+            const icon = (r) => r === 'success' ? '✅' : r === 'skipped' ? '⏭️' : '❌';
+            const allPassed = Object.values(results).every(r => r === 'success');
+
+            const body = `## PR Validation Results ${allPassed ? '✅ All checks passed' : '❌ Some checks failed'}
+
+            | Check | Result |
+            |-------|--------|
+            | Lint & Format | ${icon(results.lint)} ${results.lint} |
+            | TypeScript | ${icon(results.typecheck)} ${results.typecheck} |
+            | Unit Tests | ${icon(results.test)} ${results.test} |
+            | Build | ${icon(results.build)} ${results.build} |
+
+            ${allPassed ? '**Ready to merge.**' : '**Fix failing checks before merging.**'}
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });

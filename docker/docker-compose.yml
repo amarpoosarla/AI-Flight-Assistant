@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: builder        # Use builder stage for dev (has devDeps + hot reload)
+      args:
+        NEXT_PUBLIC_ENV: development
+        NEXT_PUBLIC_API_URL: http://localhost:3000
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    command: npm run dev
+    ports:
+      - '3000:3000'
+    volumes:
+      - ..:/app                         # Mount source for hot reload
+      - /app/node_modules               # Don't overwrite container node_modules
+      - /app/.next                      # Don't overwrite build cache
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:3000
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - AMADEUS_CLIENT_ID=${AMADEUS_CLIENT_ID}
+      - AMADEUS_CLIENT_SECRET=${AMADEUS_CLIENT_SECRET}
+      - AMADEUS_HOSTNAME=test
+      - HEALTH_CHECK_SECRET=${HEALTH_CHECK_SECRET}
+    restart: unless-stopped
+
+# Future services (Redis, background workers) can be added here
