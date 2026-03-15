@@ -43,6 +43,7 @@ export default function LoginForm() {
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/callback?next=${redirectTo}`,
+        queryParams: { prompt: 'select_account' },
       },
     });
 

@@ -45,6 +45,7 @@ export default function SignupForm() {
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/callback?next=/flights`,
+        queryParams: { prompt: 'select_account' },
       },
     });
 
