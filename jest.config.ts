@@ -19,6 +19,17 @@ const config: Config = {
     'store/**/*.{ts,tsx}',
     '!**/*.d.ts',
     '!**/node_modules/**',
+    // Exclude files requiring external services or Next.js runtime
+    // These are covered by integration/E2E tests, not unit tests
+    '!lib/amadeus.ts',
+    '!lib/llm.ts',
+    '!lib/planner-agent.ts',
+    '!lib/logger.ts',
+    '!lib/supabase/**',
+    '!app/**',           // Next.js pages/routes — E2E territory
+    '!middleware.ts',
+    '!hooks/**',         // All hooks depend on Supabase client
+    '!components/auth/**', // Auth components depend on Supabase client
   ],
   coverageThreshold: {
     global: {
