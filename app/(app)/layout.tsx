@@ -4,6 +4,8 @@ import { Plane } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import UserMenu from '@/components/auth/UserMenu';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const {

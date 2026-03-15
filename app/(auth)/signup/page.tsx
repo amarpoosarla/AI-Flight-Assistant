@@ -1,5 +1,6 @@
 import SignupForm from '@/components/auth/SignupForm';
 
+export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Create Account — AI Flight Assistant' };
 
 export default function SignupPage() {

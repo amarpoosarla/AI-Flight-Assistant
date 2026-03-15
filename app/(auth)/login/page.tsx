@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import LoginForm from '@/components/auth/LoginForm';
 
+export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Sign In — AI Flight Assistant' };
 
 export default function LoginPage() {
