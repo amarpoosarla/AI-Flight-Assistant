@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 }
 
 // GET /api/bookings — list user's bookings
-export async function GET(_request: NextRequest) {
+export async function GET() {
   const supabase = await createClient();
   const {
     data: { user },
