@@ -48,9 +48,9 @@ describe('ChatMessage', () => {
 });
 
 describe('StreamingMessage', () => {
-  it('shows Thinking... when no text or status', () => {
+  it('shows default thinking label when no text or status', () => {
     render(<StreamingMessage text="" statusText={null} />);
-    expect(screen.getByText('Thinking...')).toBeInTheDocument();
+    expect(screen.getByText('Analyzing your request…')).toBeInTheDocument();
   });
 
   it('shows status text when provided', () => {
