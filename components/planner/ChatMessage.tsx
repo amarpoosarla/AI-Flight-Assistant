@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import type { ChatMessage as ChatMessageType } from '@/types/planner';
 
@@ -132,6 +133,25 @@ export function StreamingMessage({
 }) {
   const isThinking = !text;
 
+  // Client-side elapsed timer — shows immediately regardless of server streaming
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (!isThinking) return;
+    setElapsed(0);
+    const interval = setInterval(() => setElapsed((s) => s + 1), 1000);
+    return () => clearInterval(interval);
+  }, [isThinking]);
+
+  // Cycle through thinking labels every few seconds while waiting
+  const thinkingLabels = [
+    'Analyzing your request…',
+    'Searching for flights…',
+    'Comparing options…',
+    'Almost there…',
+  ];
+  const label =
+    statusText ?? thinkingLabels[Math.min(Math.floor(elapsed / 6), thinkingLabels.length - 1)];
+
   return (
     <div className="flex gap-3 justify-start">
       {/* Avatar — pulses while thinking */}
@@ -144,29 +164,28 @@ export function StreamingMessage({
         <span className="text-white text-xs font-bold">AI</span>
       </div>
 
-      <div className="max-w-[85%] bg-white border border-slate-200 rounded-2xl rounded-tl-sm shadow-sm px-4 py-3 min-w-[160px]">
+      <div className="max-w-[85%] bg-white border border-slate-200 rounded-2xl rounded-tl-sm shadow-sm px-4 py-3 min-w-[200px]">
         {/* Thinking / status phase */}
         {isThinking && (
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {/* Animated dots */}
             <div className="flex gap-1.5 items-center">
-              <span className="w-2 h-2 rounded-full bg-brand-400 animate-bounce [animation-delay:0ms]" />
-              <span className="w-2 h-2 rounded-full bg-brand-400 animate-bounce [animation-delay:150ms]" />
-              <span className="w-2 h-2 rounded-full bg-brand-400 animate-bounce [animation-delay:300ms]" />
+              <span className="w-2 h-2 rounded-full bg-brand-500 animate-bounce [animation-delay:0ms]" />
+              <span className="w-2 h-2 rounded-full bg-brand-500 animate-bounce [animation-delay:150ms]" />
+              <span className="w-2 h-2 rounded-full bg-brand-500 animate-bounce [animation-delay:300ms]" />
             </div>
 
-            {/* Status text */}
-            {statusText ? (
-              <div className="space-y-1">
-                {statusText.split('\n').map((line, i) => (
-                  <p key={i} className="text-xs text-slate-500 leading-relaxed">
-                    {line}
-                  </p>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-slate-400">Thinking...</p>
-            )}
+            {/* Status / cycling label */}
+            <div className="space-y-1">
+              {label.split('\n').map((line, i) => (
+                <p key={i} className="text-xs text-slate-500 leading-relaxed">
+                  {line}
+                </p>
+              ))}
+            </div>
+
+            {/* Elapsed time */}
+            {elapsed > 2 && <p className="text-xs text-slate-300">{elapsed}s</p>}
           </div>
         )}
 
