@@ -130,36 +130,51 @@ export function StreamingMessage({
   text: string;
   statusText: string | null;
 }) {
+  const isThinking = !text;
+
   return (
     <div className="flex gap-3 justify-start">
-      <div className="w-7 h-7 rounded-full bg-brand-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+      {/* Avatar — pulses while thinking */}
+      <div
+        className={cn(
+          'w-7 h-7 rounded-full bg-brand-600 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all',
+          isThinking && 'animate-pulse ring-2 ring-brand-300 ring-offset-1'
+        )}
+      >
         <span className="text-white text-xs font-bold">AI</span>
       </div>
 
-      <div className="max-w-[85%] bg-white border border-slate-200 rounded-2xl rounded-tl-sm shadow-sm px-4 py-3">
-        {statusText && !text && (
-          <div className="flex items-center gap-2 text-slate-400 text-sm">
-            <span className="flex gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-bounce [animation-delay:0ms]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-bounce [animation-delay:150ms]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-bounce [animation-delay:300ms]" />
-            </span>
-            <span className="text-xs text-slate-500 whitespace-pre-line">{statusText}</span>
+      <div className="max-w-[85%] bg-white border border-slate-200 rounded-2xl rounded-tl-sm shadow-sm px-4 py-3 min-w-[160px]">
+        {/* Thinking / status phase */}
+        {isThinking && (
+          <div className="space-y-2">
+            {/* Animated dots */}
+            <div className="flex gap-1.5 items-center">
+              <span className="w-2 h-2 rounded-full bg-brand-400 animate-bounce [animation-delay:0ms]" />
+              <span className="w-2 h-2 rounded-full bg-brand-400 animate-bounce [animation-delay:150ms]" />
+              <span className="w-2 h-2 rounded-full bg-brand-400 animate-bounce [animation-delay:300ms]" />
+            </div>
+
+            {/* Status text */}
+            {statusText ? (
+              <div className="space-y-1">
+                {statusText.split('\n').map((line, i) => (
+                  <p key={i} className="text-xs text-slate-500 leading-relaxed">
+                    {line}
+                  </p>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400">Thinking...</p>
+            )}
           </div>
         )}
 
+        {/* Streaming text phase */}
         {text && (
           <div className="space-y-0.5">
             {renderMarkdown(text)}
             <span className="inline-block w-0.5 h-3.5 bg-brand-500 animate-pulse ml-0.5 align-text-bottom" />
-          </div>
-        )}
-
-        {!text && !statusText && (
-          <div className="flex gap-1 items-center h-5">
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-bounce [animation-delay:0ms]" />
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-bounce [animation-delay:150ms]" />
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-bounce [animation-delay:300ms]" />
           </div>
         )}
       </div>

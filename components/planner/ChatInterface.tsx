@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Send, RotateCcw, Plane } from 'lucide-react';
+import { Send, RotateCcw, Plane, Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePlanner } from '@/hooks/usePlanner';
 import ChatMessage, { StreamingMessage } from './ChatMessage';
@@ -132,29 +132,50 @@ export default function ChatInterface() {
             onKeyDown={handleKeyDown}
             disabled={!isIdle}
             rows={1}
-            placeholder="Ask about flights or describe your group trip..."
+            placeholder={
+              streaming ? 'AI is thinking...' : 'Ask about flights or describe your group trip...'
+            }
             className={cn(
-              'flex-1 resize-none border border-slate-300 rounded-xl px-4 py-3 text-sm',
+              'flex-1 resize-none border rounded-xl px-4 py-3 text-sm transition-colors',
               'focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent',
-              'disabled:bg-slate-50 disabled:cursor-not-allowed',
-              'max-h-40 scrollbar-hide'
+              'max-h-40 scrollbar-hide',
+              streaming
+                ? 'border-brand-200 bg-brand-50/40 cursor-not-allowed text-slate-400'
+                : 'border-slate-300 disabled:bg-slate-50 disabled:cursor-not-allowed'
             )}
           />
-          <button
-            type="submit"
-            disabled={!input.trim() || !isIdle}
-            className={cn(
-              'w-10 h-10 rounded-xl bg-brand-600 hover:bg-brand-700 text-white flex-shrink-0',
-              'flex items-center justify-center transition-colors',
-              'disabled:opacity-40 disabled:cursor-not-allowed'
-            )}
-            aria-label="Send message"
-          >
-            <Send className="w-4 h-4" />
-          </button>
+          {streaming ? (
+            <button
+              type="button"
+              onClick={clearSession}
+              className={cn(
+                'w-10 h-10 rounded-xl bg-slate-200 hover:bg-red-100 hover:text-red-600 text-slate-500 flex-shrink-0',
+                'flex items-center justify-center transition-colors'
+              )}
+              aria-label="Stop generation"
+              title="Stop"
+            >
+              <Square className="w-4 h-4 fill-current" />
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={!input.trim()}
+              className={cn(
+                'w-10 h-10 rounded-xl bg-brand-600 hover:bg-brand-700 text-white flex-shrink-0',
+                'flex items-center justify-center transition-colors',
+                'disabled:opacity-40 disabled:cursor-not-allowed'
+              )}
+              aria-label="Send message"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          )}
         </form>
         <p className="text-xs text-slate-400 mt-2 text-center">
-          Press Enter to send · Shift+Enter for new line
+          {streaming
+            ? 'AI is working on your request...'
+            : 'Press Enter to send · Shift+Enter for new line'}
         </p>
       </div>
     </div>
